@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多语言学习工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 120px);
+            padding-bottom: 120px;
+        }
+        
+        .input-section {
+            flex: 1;
+            padding: 20px;
+            border-right: 2px solid #ccc;
+        }
+
+        .learning-section {
+            flex: 1;
+            padding: 20px;
+            display: none;
+        }
+
+        .sentence-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        #current-sentence {
+            width: 100%;
+            padding: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #current-sentence.show {
+            opacity: 1;
+        }
+
+        .show-original-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 5px 10px;
+        }
+        
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
+            padding: 20px;
+            background: #f5f5f5;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+
+        .language-selector {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .button-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .language-selector {
+                width: 100%;
+                font-size: 14px;
+            }
+            .control-panel {
+                height: auto;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-section">
+            <h3>输入外语句子（每句换行分隔）</h3>
+            <textarea id="sentences-input"></textarea>
+            <div class="button-group">
+                <button onclick="processText()">生成语音库</button>
+                <select class="language-selector" id="language-select">
+                    <option value="en-US">英语</option>
+                    <option value="fr-FR">法语</option>
+                    <option value="ja-JP">日语</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="learning-section">
+            <h3>学习模式</h3>
+            <div class="sentence-container">
+                <textarea id="current-sentence" readonly></textarea>
+                <button class="show-original-btn" onclick="toggleShowOriginal()">显示原句</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status">准备就绪</div>
+
+    <div class="control-panel">
+        <button id="play-original">播放原声</button>
+        <button id="record-button">开始录音</button>
+        <button id="next-button">下一句</button>
+    </div>
+
+    <script>
+        const state = {
+            sentences: [],
+            currentIndex: 0,
+            isRecording: false,
+            mediaRecorder: null,
+            audioChunks: [],
+            originalAudios: [],
+            userRecordings: [],
+            isComparing: false,
+            currentLang: 'en-US',
+            learningMode: false
+        };
+
+        // 示例文本配置
+        const examples = {
+            'en-US': 'Hello world\nHow are you?\nGood day',
+            'fr-FR': 'Bonjour le monde\nComment allez-vous?\nBonne journée',
+            'ja-JP': 'こんにちは世界\nお元気ですか？\n良い一日を'
+        };
+
+        // 初始化语言选择
+        document.getElementById('language-select').addEventListener('change', function() {
+            state.currentLang = this.value;
+            localStorage.setItem('preferredLang', this.value);
+            updateExamples(this.value);
+        });
+
+        // 读取保存的语言设置
+        const savedLang = localStorage.getItem('preferredLang');
+        if (savedLang) {
+            document.getElementById('language-select').value = savedLang;
+            state.currentLang = savedLang;
+        }
+
+        // 初始化示例文本
+        function updateExamples(lang) {
+            document.getElementById('sentences-input').placeholder = examples[lang] || '';
+        }
+        updateExamples(state.currentLang);
+
+        function processText() {
+            const input = document.getElementById('sentences-input').value;
+            state.sentences = input.split('\n').filter(line => line.trim());
+            if (state.sentences.length === 0) return;
+
+            // 切换到学习模式
+            state.learningMode = true;
+            document.querySelector('.input-section').style.display = 'none';
+            document.querySelector('.learning-section').style.display = 'block';
+            
+            const voices = window.speechSynthesis.getVoices();
+            const lang = state.currentLang;
+
+            // 验证语音支持
+            const availableVoices = voices.filter(v => v.lang === lang);
+            if (availableVoices.length === 0) {
+                alert(`当前浏览器不支持${getLangName(lang)}语音`);
+                return;
+            }
+
+            state.originalAudios = [];
+            state.sentences.forEach((text, index) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = lang;
+                utterance.voice = availableVoices[0];
+                utterance.rate = getSpeechRate(lang);
+                state.originalAudios.push(utterance);
+            });
+            
+            updateStatus(`已生成 ${state.sentences.length} 条${getLangName(lang)}语音`);
+            state.currentIndex = 0;
+            updateLearningUI();
+            setTimeout(() => playOriginal(), 500);
+        }
+
+        function updateLearningUI() {
+            document.getElementById('current-sentence').value = state.sentences[state.currentIndex];
+            document.getElementById('current-sentence').classList.remove('show');
+            document.querySelector('.show-original-btn').textContent = '显示原句';
+            document.getElementById('next-button').disabled = 
+                state.currentIndex >= state.sentences.length - 1;
+        }
+
+        function toggleShowOriginal() {
+            const textarea = document.getElementById('current-sentence');
+            textarea.classList.toggle('show');
+            document.querySelector('.show-original-btn').textContent = 
+                textarea.classList.contains('show') ? '隐藏原句' : '显示原句';
+        }
+
+        function getSpeechRate(lang) {
+            const rates = {
+                'en-US': 0.9,
+                'fr-FR': 0.85,
+                'ja-JP': 0.8
+            };
+            return rates[lang] || 0.9;
+        }
+
+        function getLangName(code) {
+            const names = {
+                'en-US': '英语',
+                'fr-FR': '法语',
+                'ja-JP': '日语'
+            };
+            return names[code] || '未知语言';
+        }
+
+        function playOriginal() {
+            if (!state.originalAudios[state.currentIndex]) return;
+            
+            window.speechSynthesis.cancel();
+            const utterance = state.originalAudios[state.currentIndex];
+            window.speechSynthesis.speak(utterance);
+            
+            utterance.onend = () => {
+                updateStatus(`第 ${state.currentIndex + 1} 句播放完成`);
+            };
+        }
+
+        async function toggleRecording() {
+            if (!state.isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    state.mediaRecorder = new MediaRecorder(stream);
+                    state.audioChunks = [];
+                    
+                    state.mediaRecorder.ondataavailable = e => {
+                        state.audioChunks.push(e.data);
+                    };
+                    
+                    state.mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(state.audioChunks);
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        state.userRecordings[state.currentIndex] = audioUrl;
+                        playUserRecording();
+                    };
+                    
+                    state.mediaRecorder.start();
+                    state.isRecording = true;
+                    updateStatus("录音中...");
+                    document.getElementById('record-button').textContent = '停止录音';
+                } catch (err) {
+                    alert("需要麦克风权限");
+                }
+            } else {
+                state.mediaRecorder.stop();
+                state.isRecording = false;
+                document.getElementById('record-button').textContent = '开始录音';
+            }
+        }
+
+        function playUserRecording() {
+            if (!state.userRecordings[state.currentIndex]) return;
+            
+            const userAudio = new Audio(state.userRecordings[state.currentIndex]);
+            userAudio.play();
+            updateStatus("播放用户录音...");
+            
+            userAudio.onended = () => {
+                updateStatus("正在播放原声对比...");
+                playOriginal();
+            };
+        }
+
+        function nextSentence() {
+            if (state.currentIndex < state.sentences.length - 1) {
+                state.currentIndex++;
+                updateLearningUI();
+                updateStatus(`准备第 ${state.currentIndex + 1} 句`);
+                setTimeout(() => playOriginal(), 500);
+            } else {
+                updateStatus("所有句子已完成");
+            }
+        }
+
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        // 事件绑定
+        document.getElementById('play-original').addEventListener('click', playOriginal);
+        document.getElementById('record-button').addEventListener('click', toggleRecording);
+        document.getElementById('next-button').addEventListener('click', nextSentence);
+
+        // 语音初始化
+        window.speechSynthesis.onvoiceschanged = () => {
+            console.log('语音列表已更新');
+        };
+
+        if (!window.speechSynthesis) {
+            alert("本浏览器不支持语音合成功能，请使用Chrome或Edge");
+        }
+    </script>
+</body>
+</html>
