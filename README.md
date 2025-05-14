@@ -63,8 +63,8 @@ MIT License
 
 ## 🙋 About | 关于项目
 
-**EchoLang** was created as a minimal tool to help language learners train their pronunciation and speaking skills independently. Ideal for shadowing practice, speaking drills, and language mimicking.  
-**EchoLang** 是一个面向语言学习者的开源项目，旨在通过原声+录音对比的方式辅助自主练习口语和发音。
+**SpeakLoop** was created as a minimal tool to help language learners train their pronunciation and speaking skills independently. Ideal for shadowing practice, speaking drills, and language mimicking.  
+**SpeakLoop** 是一个面向语言学习者的开源项目，旨在通过原声+录音对比的方式辅助自主练习口语和发音。
 
 欢迎提出建议与改进意见，帮助项目变得更好！
 
