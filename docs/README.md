@@ -23,19 +23,22 @@
 
 ## 📦 How to Use | 使用方法
 
-1. 💬 On the right side, type a sentence in any foreign language.  
+1. 💬 Use AI models to create sentences that match your language level. Use Enter to split each sentence.
+   **用AI大模型生成符合你目前外语水平的句子，用回车间隔每个句子。**
+
+2. 💬 On the right side, type a sentence in any foreign language.  
    **在网页中间输入你想练习的外语句子。**
 
-2. ▶️ Click “Play Original” to hear the correct pronunciation.  
+3. ▶️ Click “Play Original” to hear the correct pronunciation.  
    **点击“播放原声”按钮收听标准发音。**
 
-3. 🎤 Click “Start Recording” to practice your own pronunciation.  
+4. 🎤 Click “Start Recording” to practice your own pronunciation.  
    **点击“开始录音”按钮开始朗读练习（需开启麦克风权限）。**
 
-4. 🔁 After recording, the system will play back both versions for comparison.  
+5. 🔁 After recording, the system will play back both versions for comparison.  
    **录音完成后，系统会自动播放你的发音和原声用于对比。**
 
-5. ⏭️ Click “Next Sentence” to continue.  
+6. ⏭️ Click “Next Sentence” to continue.  
    **点击“下一句”按钮继续下一条句子。**
 
 ---
