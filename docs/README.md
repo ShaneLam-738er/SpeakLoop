@@ -44,7 +44,7 @@
 ---
 
 ## Attention | 注意
-  If you want to use the French and Japanese function, please swtich to Edge, as Chrome can't provide TTL services for French and Japanese.
+  If you want to use the French and Japanese function, please swtich to Edge, as Chrome can't provide TTL services for French and Japanese.   
   如果您需要使用法语和日语功能，请使用Edge浏览器,因为Chrome不支持法语和日语的TTL。
 
 
